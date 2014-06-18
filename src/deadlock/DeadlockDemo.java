@@ -6,10 +6,9 @@ import java.util.Random;
 
 public class DeadlockDemo {
 
-    private static final int NUM_ACCOUNTS = 10;
+    private static final int NUM_ACCOUNTS = 2;
     private static final int NUM_THREADS = 20;
-    private static final int NUM_ITERATIONS = 100000;
-    private static final int MAX_COLUMNS = 60;
+    private static final int NUM_ITERATIONS = 10000;
 
     static final Random rnd = new Random();
 
@@ -23,7 +22,6 @@ public class DeadlockDemo {
     }
 
     void setUp() {
-
         for (int i = 0; i < NUM_ACCOUNTS; i++) {
             Account account = new Account(i, rnd.nextInt(1000));
             accounts.add(account);
@@ -47,45 +45,32 @@ public class DeadlockDemo {
 
         @Override
         public void run() {
-
             for (int i = 0; i < NUM_ITERATIONS; i++) {
-
-                Account toAccount = accounts.get(rnd.nextInt(NUM_ACCOUNTS));
-                Account fromAccount = accounts.get(rnd.nextInt(NUM_ACCOUNTS));
+                Account account1 = accounts.get(rnd.nextInt(NUM_ACCOUNTS));
+                Account account2 = accounts.get(rnd.nextInt(NUM_ACCOUNTS));
                 int amount = rnd.nextInt(1000);
-
-                if (!toAccount.equals(fromAccount)) {
-                    try {
-                        transfer(fromAccount, toAccount, amount);
-                        System.out.print(".");
-                    } catch (Exception e) {
-                        System.out.print("-");
-                    }
-
-                    printNewLine(i);
+                if (!account1.equals(account2)) {
+                    boolean result = transfer(account2, account1, amount);
+                    System.out.print(result ? "+" : "-");
                 }
             }
-            // This will never get to here...
             System.out.println("Thread Complete: " + threadNum);
         }
 
-        private void printNewLine(int columnNumber) {
-
-            if (columnNumber % MAX_COLUMNS == 0) {
-                System.out.print("\n");
+        private boolean transfer(Account fromAccount, Account toAccount, int transferAmount) {
+            try {
+                Thread.sleep(3);
+            } catch (InterruptedException e) {
+                System.out.println(e);
             }
-        }
-
-        /**
-         * The clue to spotting deadlocks is in the nested locking - synchronized keywords. Note that the locks DON'T
-         * have to be next to each other to be nested.
-         */
-        private void transfer(Account fromAccount, Account toAccount, int transferAmount) throws Exception {
 
             synchronized (fromAccount) {
                 synchronized (toAccount) {
-                    fromAccount.withdraw(transferAmount);
-                    toAccount.deposit(transferAmount);
+                    if (fromAccount.withdraw(transferAmount)) {
+                        toAccount.deposit(transferAmount);
+                        return true;
+                    }
+                    return false;
                 }
             }
         }

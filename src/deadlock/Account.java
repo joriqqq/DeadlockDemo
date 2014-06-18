@@ -1,35 +1,36 @@
 package deadlock;
 
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
+
 public class Account {
 
-    private final int number;
+    private final int id;
+    private volatile int balance;
+    private final AtomicIntegerFieldUpdater updater;
 
-    private int balance;
-
-    public Account(int number, int openingBalance) {
-        this.number = number;
+    public Account(int id, int openingBalance) {
+        this.id = id;
         this.balance = openingBalance;
+        updater = AtomicIntegerFieldUpdater.newUpdater(Account.class, "balance");
     }
 
-    public void withdraw(int amount) throws Exception {
-
+    public boolean withdraw(int amount) {
         if (amount > balance) {
-            throw new Exception("no cache");
+            return false;
         }
-
         balance -= amount;
+        return true;
     }
 
     public void deposit(int amount) {
-
         balance += amount;
     }
 
-    public int getNumber() {
-        return number;
+    public int getId() {
+        return id;
     }
 
-    public int getBalance() {
-        return balance;
+    public AtomicIntegerFieldUpdater getUpdater() {
+        return updater;
     }
 }
